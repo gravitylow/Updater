@@ -10,7 +10,8 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -45,7 +46,7 @@ public class Updater
     private String [] noUpdateTag = {"-DEV","-PRE"}; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
     private String updateFolder = YamlConfiguration.loadConfiguration(new File("bukkit.yml")).getString("settings.update-folder"); // The folder that downloads will be placed in
-    private UpdateResult result = UpdateResult.SUCCESS; // Used for determining the outcome of the update process
+    private Updater.UpdateResult result = Updater.UpdateResult.SUCCESS; // Used for determining the outcome of the update process
     
     // Strings for reading RSS
     private static final String TITLE = "title";
@@ -54,9 +55,32 @@ public class Updater
     
     public enum UpdateResult
     {
-        SUCCESS(1),NO_UPDATE(2),FAIL_DOWNLOAD(3),FAIL_DBO(4),FAIL_NOVERSION(5),FAIL_BADSLUG(6);
+        /**
+        * The updater found an update, and has readied it to be loaded the next time the server restarts/reloads.
+        */        
+        SUCCESS(1),
+        /**
+        * The updater did not find an update, and nothing was downloaded.
+        */        
+        NO_UPDATE(2),
+        /**
+        * The updater found an update, but was unable to download it.
+        */        
+        FAIL_DOWNLOAD(3),
+        /**
+        * For some reason, the updater was unable to contact dev.bukkit.org to download the file.
+        */        
+        FAIL_DBO(4),
+        /**
+        * When running the version check, the file on DBO did not contain the a version in the format 'vVersion' such as 'v1.0'.
+        */        
+        FAIL_NOVERSION(5),
+        /**
+        * The slug provided by the plugin running the updater was invalid and doesn't exist on DBO.
+        */        
+        FAIL_BADSLUG(6);
         
-        private static final Map<Integer, UpdateResult> valueList = new HashMap<Integer, UpdateResult>();
+        private static final Map<Integer, Updater.UpdateResult> valueList = new HashMap<Integer, Updater.UpdateResult>();
         private final int value;
         
         private UpdateResult(int value)
@@ -69,14 +93,14 @@ public class Updater
             return this.value;
         }
         
-        public static UpdateResult getResult(int value)
+        public static Updater.UpdateResult getResult(int value)
         {
             return valueList.get(value);
         }
         
         static
         {
-            for(UpdateResult result : UpdateResult.values())
+            for(Updater.UpdateResult result : Updater.UpdateResult.values())
             {
                 valueList.put(result.value, result);
             }
@@ -109,7 +133,7 @@ public class Updater
             // The slug doesn't exist
             plugin.getLogger().warning("The author of this plugin has misconfigured their Auto Update system");
             plugin.getLogger().warning("The project slug added ('" + slug + "') is invalid, and does not exist on dev.bukkit.org");
-            result = UpdateResult.FAIL_BADSLUG; // Bad slug! Bad!
+            result = Updater.UpdateResult.FAIL_BADSLUG; // Bad slug! Bad!
         }
         if(url != null)
         {
@@ -129,7 +153,7 @@ public class Updater
     /**
      * Get the result of the update process.
      */     
-    public UpdateResult getResult()
+    public Updater.UpdateResult getResult()
     {
         return result;
     }
@@ -161,7 +185,7 @@ public class Updater
         catch (Exception ex)
         {
             plugin.getLogger().warning("The auto-updater tried to download a new update, but was unsuccessful."); 
-            result = UpdateResult.FAIL_DOWNLOAD;
+            result = Updater.UpdateResult.FAIL_DOWNLOAD;
         }
         finally
         {
@@ -214,7 +238,7 @@ public class Updater
         catch (Exception ex)
         {
             plugin.getLogger().warning("The auto-updater tried to contact dev.bukkit.org, but was unsuccessful.");
-            result = UpdateResult.FAIL_DBO;
+            result = Updater.UpdateResult.FAIL_DBO;
             return null;            
         }
         return download;
@@ -234,7 +258,7 @@ public class Updater
                 if(hasTag(version) || version.equalsIgnoreCase(remoteVersion))
                 {
                     // We already have the latest version, or this build is tagged for no-update
-                    result = UpdateResult.NO_UPDATE;
+                    result = Updater.UpdateResult.NO_UPDATE;
                     return false;
                 }
             }
@@ -244,7 +268,7 @@ public class Updater
                 plugin.getLogger().warning("The author of this plugin has misconfigured their Auto Update system");
                 plugin.getLogger().warning("Files uploaded to BukkitDev should contain the version number, seperated from the name by a 'v', such as PluginName v1.0");
                 plugin.getLogger().warning("Please notify the author (" + plugin.getDescription().getAuthors().get(0) + ") of this error.");
-                result = UpdateResult.FAIL_NOVERSION;
+                result = Updater.UpdateResult.FAIL_NOVERSION;
                 return false;
             }
         }
