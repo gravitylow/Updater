@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.*;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -18,7 +19,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Check Dev.Bukkit.org to find updates for a given plugin, and download the updates if needed.
+ * Check dev.bukkit.org to find updates for a given plugin, and download the updates if needed.
  * <p>
  * <b>VERY, VERY IMPORTANT</b>: Because there are no standards for adding auto-update toggles in your plugin's config, this system provides NO CHECK WITH YOUR CONFIG to make sure the user has allowed auto-updating.
  * <br>
@@ -29,6 +30,8 @@ import org.bukkit.plugin.Plugin;
  * An example of a good configuration option would be something similar to 'auto-update: true' - if this value is set to false you may NOT run the auto-updater.
  * <br>
  * If you are unsure about these rules, please read the plugin submission guidelines: http://goo.gl/8iU5l
+ * 
+ * @author H31IX
  */
 
 public class Updater 
@@ -49,11 +52,12 @@ public class Updater
     private static final String LINK = "link";
     private static final String ITEM = "item";    
     
-    private enum UpdateResult
+    public enum UpdateResult
     {
         SUCCESS(1),NO_UPDATE(2),FAIL_DOWNLOAD(3),FAIL_DBO(4),FAIL_NOVERSION(5),FAIL_BADSLUG(6);
         
-        private int value;
+        private static final Map<Integer, UpdateResult> valueList = new HashMap<Integer, UpdateResult>();
+        private final int value;
         
         private UpdateResult(int value)
         {
@@ -63,6 +67,19 @@ public class Updater
         public int getValue()
         {
             return this.value;
+        }
+        
+        public static UpdateResult getResult(int value)
+        {
+            return valueList.get(value);
+        }
+        
+        static
+        {
+            for(UpdateResult result : UpdateResult.values())
+            {
+                valueList.put(result.value, result);
+            }
         }
     }
     
@@ -111,22 +128,10 @@ public class Updater
 
     /**
      * Get the result of the update process.
-     * @return 
-     * 1 = Success: The updater found an update, and has readied it to be loaded the next time the server restarts/reloads
-     * <br>
-     * 2 = No Update: The updater did not find an update, and nothing was downloaded.
-     * <br>
-     * 3 = Download Failed: The updater found an update, but was unable to download it.
-     * <br>
-     * 4 = Dev.Bukkit.Org Failed: For some reason, the updater was unable to contact DBO to download the file.
-     * <br>
-     * 5 = No version found: When running the version check, the file on DBO did not contain the a version in the format 'vVersion' such as 'v1.0'.
-     * <br>
-     * 6 = Bad slug: The slug provided by the plugin running the updater was invalid and doesn't exist on DBO.
      */     
-    public int getResult()
+    public UpdateResult getResult()
     {
-        return result.getValue();
+        return result;
     }
     
     /**
