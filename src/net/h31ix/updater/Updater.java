@@ -233,12 +233,20 @@ public class Updater
     }
     
     /**
-     * Get the total bytes of the file (can only be used after running a version check or a normal run)
+     * Get the total bytes of the file (can only be used after running a version check or a normal run).
      */     
     public double getFileSize()
     {
         return totalSize;
-    }    
+    } 
+    
+    /**
+     * Get the version string latest file avaliable online.
+     */      
+    public String getLatestVersionString()
+    {
+        return versionTitle;
+    }
     
     /**
      * Save an update from dev.bukkit.org into the server's update folder.
