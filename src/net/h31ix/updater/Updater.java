@@ -41,9 +41,14 @@ import org.bukkit.plugin.Plugin;
 public class Updater 
 {
     private Plugin plugin;
-    private boolean checkVersion;
+    private UpdateType type;
     private String versionTitle;
     private String versionLink;
+    private double totalSize; // Holds the total size of the file
+    private double downloadedSize; // Holds the number of bytes downloaded
+    private int sizeLine; // Used for detecting file size
+    private int multiplier; // Used for determining when to broadcast download updates
+    private boolean announce; // Whether to announce file downloads
     private URL url; // Connecting to RSS
     private static final String DBOUrl = "http://dev.bukkit.org/server-mods/"; // Slugs will be appended to this to get to the project's RSS feed
     private String [] noUpdateTag = {"-DEV","-PRE"}; // If the version number contains one of these, don't update.
@@ -56,6 +61,9 @@ public class Updater
     private static final String LINK = "link";
     private static final String ITEM = "item";    
     
+    /**
+    * Gives the dev the result of the update process. Can be obtained by called getResult().
+    */     
     public enum UpdateResult
     {
         /**
@@ -81,7 +89,11 @@ public class Updater
         /**
         * The slug provided by the plugin running the updater was invalid and doesn't exist on DBO.
         */        
-        FAIL_BADSLUG(6);
+        FAIL_BADSLUG(6),
+        /**
+        * The updater found an update, but because of the UpdateType being set to NO_DOWNLOAD, it wasn't downloaded.
+        */        
+        UPDATE_AVAILABLE(7);        
         
         private static final Map<Integer, Updater.UpdateResult> valueList = new HashMap<Integer, Updater.UpdateResult>();
         private final int value;
@@ -111,6 +123,51 @@ public class Updater
     }
     
     /**
+    * Allows the dev to specify the type of update that will be run.
+    */     
+    public enum UpdateType
+    {
+        /**
+        * Run a version check, and then if the file is out of date, download the newest version.
+        */        
+        DEFAULT(1),
+        /**
+        * Don't run a version check, just find the latest update and download it.
+        */        
+        NO_VERSION_CHECK(2),
+        /**
+        * Get information about the version and the download size, but don't actually download anything.
+        */        
+        NO_DOWNLOAD(3);
+        
+        private static final Map<Integer, Updater.UpdateType> valueList = new HashMap<Integer, Updater.UpdateType>();
+        private final int value;
+        
+        private UpdateType(int value)
+        {
+            this.value = value;
+        }
+        
+        public int getValue()
+        {
+            return this.value;
+        }
+        
+        public static Updater.UpdateType getResult(int value)
+        {
+            return valueList.get(value);
+        }
+        
+        static
+        {
+            for(Updater.UpdateType result : Updater.UpdateType.values())
+            {
+                valueList.put(result.value, result);
+            }
+        }
+    }    
+    
+    /**
      * Initialize the updater
      * 
      * @param plugin
@@ -119,13 +176,16 @@ public class Updater
      *            The dev.bukkit.org slug of the project (http://dev.bukkit.org/server-mods/SLUG_IS_HERE)
      * @param file
      *            The file that the plugin is running from, get this by doing this.getFile() from within your main class.
-     * @param checkVersion
-     *            If true, the system will run a check comparing our version with the newest file to see if they differ before downloading.
+     * @param type
+     *            Specify the type of update this will be. See {@link UpdateType}
+     * @param announce
+     *            True if the program should announce the progress of new updates in console
      */ 
-    public Updater(Plugin plugin, String slug, File file, boolean checkVersion)
+    public Updater(Plugin plugin, String slug, File file, UpdateType type, boolean announce)
     {
         this.plugin = plugin;
-        this.checkVersion = checkVersion;
+        this.type = type;
+        this.announce = announce;
         try 
         {
             // Obtain the results of the project's file feed
@@ -145,7 +205,7 @@ public class Updater
             if(versionCheck(versionTitle))
             {
                 String fileLink = getFile(versionLink);
-                if(fileLink != null)
+                if(fileLink != null && type != UpdateType.NO_DOWNLOAD)
                 {
                     String name = file.getName();
                     // If it's a zip file, it shouldn't be downloaded as the plugin's name
@@ -155,6 +215,10 @@ public class Updater
                         name = split[split.length-1];
                     }
                     saveFile(new File("plugins/" + updateFolder), name, fileLink);
+                }
+                else
+                {
+                    result = UpdateResult.UPDATE_AVAILABLE;
                 }
             }
         }
@@ -169,9 +233,17 @@ public class Updater
     }
     
     /**
+     * Get the total bytes of the file (can only be used after running a version check or a normal run)
+     */     
+    public double getFileSize()
+    {
+        return totalSize;
+    }    
+    
+    /**
      * Save an update from dev.bukkit.org into the server's update folder.
      */     
-    private void saveFile(File folder, String file, String url)
+    private void saveFile(File folder, String file, String u)
     {
         if(!folder.exists())
         {
@@ -182,14 +254,24 @@ public class Updater
         try
         {
             // Download the file
-            in = new BufferedInputStream(new URL(url).openStream());
+            URL url = new URL(u);
+            int fileLength = url.openConnection().getContentLength();
+            in = new BufferedInputStream(url.openStream());
             fout = new FileOutputStream(folder.getAbsolutePath() + "/" + file);
 
             byte[] data = new byte[BYTE_SIZE];
             int count;
+            if(announce) plugin.getLogger().info("About to download a new update: " + versionTitle);
+            long downloaded = 0;
             while ((count = in.read(data, 0, BYTE_SIZE)) != -1)
             {
+                downloaded += count;
                 fout.write(data, 0, count);
+                int percent = (int) (downloaded * 100 / fileLength);
+                if(announce & (percent % 10 == 0))
+                {
+                    plugin.getLogger().info("Downloading update: " + percent + "% of " + fileLength + " bytes.");
+                }
             }
             //Just a quick check to make sure we didn't leave any files from last time...
             for(File xFile : new File("plugins/" + updateFolder).listFiles())
@@ -206,6 +288,7 @@ public class Updater
                 // Unzip
                 unzip(dFile.getCanonicalPath());
             }
+            if(announce) plugin.getLogger().info("Finished updating.");
         }
         catch (Exception ex)
         {
@@ -232,7 +315,7 @@ public class Updater
     }
     
     /**
-     * Zip-File-Extractor, modified by H31IX for use with Bukkit
+     * Part of Zip-File-Extractor, modified by H31IX for use with Bukkit
      */      
     private void unzip(String file) 
     {
@@ -353,14 +436,28 @@ public class Updater
             InputStreamReader inStream = new InputStreamReader(urlConn.getInputStream());
             BufferedReader buff = new BufferedReader(inStream);
             
+            int counter = 0;
             String line;
             while((line = buff.readLine()) != null)
             {
+                counter++;
                 // Search for the download link
                 if(line.contains("<li class=\"user-action user-action-download\">"))
                 {
                     // Get the raw link
                     download = line.split("<a href=\"")[1].split("\">Download</a>")[0];
+                }
+                // Search for size
+                else if (line.contains("<dt>Size</dt>"))
+                {
+                    sizeLine = counter+1;
+                }
+                else if(counter == sizeLine)
+                {
+                    String size = line.replaceAll("<dd>", "").replaceAll("</dd>", "");
+                    multiplier = size.contains("MiB") ? 1048576 : 1024;
+                    size = size.replace(" KiB", "").replace(" MiB", "");
+                    totalSize = Double.parseDouble(size)*multiplier;
                 }
             }
             urlConn = null;
@@ -370,6 +467,7 @@ public class Updater
         }
         catch (Exception ex)
         {
+            ex.printStackTrace();
             plugin.getLogger().warning("The auto-updater tried to contact dev.bukkit.org, but was unsuccessful.");
             result = Updater.UpdateResult.FAIL_DBO;
             return null;            
@@ -382,7 +480,7 @@ public class Updater
      */
     private boolean versionCheck(String title)
     {
-        if(checkVersion)
+        if(type != UpdateType.NO_VERSION_CHECK)
         {
             String version = plugin.getDescription().getVersion();
             if(title.split("v").length == 2)
