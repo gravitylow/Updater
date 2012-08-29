@@ -44,8 +44,8 @@ public class Updater
     private UpdateType type;
     private String versionTitle;
     private String versionLink;
-    private double totalSize; // Holds the total size of the file
-    private double downloadedSize; // Holds the number of bytes downloaded
+    private long totalSize; // Holds the total size of the file
+    private double downloadedSize; // TODO: Holds the number of bytes downloaded
     private int sizeLine; // Used for detecting file size
     private int multiplier; // Used for determining when to broadcast download updates
     private boolean announce; // Whether to announce file downloads
@@ -235,7 +235,7 @@ public class Updater
     /**
      * Get the total bytes of the file (can only be used after running a version check or a normal run).
      */     
-    public double getFileSize()
+    public long getFileSize()
     {
         return totalSize;
     } 
@@ -465,7 +465,7 @@ public class Updater
                     String size = line.replaceAll("<dd>", "").replaceAll("</dd>", "");
                     multiplier = size.contains("MiB") ? 1048576 : 1024;
                     size = size.replace(" KiB", "").replace(" MiB", "");
-                    totalSize = Double.parseDouble(size)*multiplier;
+                    totalSize = (long)(Double.parseDouble(size)*multiplier);
                 }
             }
             urlConn = null;
