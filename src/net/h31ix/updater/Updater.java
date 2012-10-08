@@ -523,16 +523,19 @@ public class Updater
     /**
      * Used to calculate the version string as an Integer
      */ 
-    private int calVer(String s) throws NumberFormatException{
+    private Integer calVer(String s) throws NumberFormatException{
         if(s.contains(".")){
             StringBuilder sb = new StringBuilder();
-        	for(String st:s.split(".")){
-        		sb.append(st);
-        	}
+            for (int i = 0; i <s.length(); i++) {
+                Character c = s.charAt(i);
+                if (Character.isDigit(c)) {
+                    sb.append(c);
+                }
+            }
         	return Integer.parseInt(sb.toString());
         }
         return Integer.parseInt(s);
-    }    
+    }
     /**
      * Evaluate whether the version number is marked showing that it should not be updated by this program
      */  
