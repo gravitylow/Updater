@@ -494,7 +494,7 @@ public class Updater
             if(title.split("v").length == 2)
             {
                 String remoteVersion = title.split("v")[1].split(" ")[0]; // Get the newest file's version number
-                int remVer = 0,curVer=0;
+                int remVer = -1,curVer=0;
                 try
                 {
                     remVer = calVer(remoteVersion);
@@ -502,7 +502,7 @@ public class Updater
                 }
                 catch(NumberFormatException nfe)
                 {
-                //Do nothing. 
+                remVer=-1;
                 }
                 if(hasTag(version)||version.equalsIgnoreCase(remoteVersion)||curVer>=remVer)
                 {
@@ -534,7 +534,7 @@ public class Updater
             for (int i = 0; i <s.length(); i++) 
             {
                 Character c = s.charAt(i);
-                if (Character.isDigit(c)) 
+                if (Character.isLetterOrDigit(c)) 
                 {
                     sb.append(c);
                 }
