@@ -494,7 +494,17 @@ public class Updater
             if(title.split("v").length == 2)
             {
                 String remoteVersion = title.split("v")[1].split(" ")[0]; // Get the newest file's version number
-                if(hasTag(version) || version.equalsIgnoreCase(remoteVersion))
+                int remVer = -1,curVer=0;
+                try
+                {
+                    remVer = calVer(remoteVersion);
+                    curVer = calVer(version);
+                }
+                catch(NumberFormatException nfe)
+                {
+                remVer=-1;
+                }
+                if(hasTag(version)||version.equalsIgnoreCase(remoteVersion)||curVer>=remVer)
                 {
                     // We already have the latest version, or this build is tagged for no-update
                     result = Updater.UpdateResult.NO_UPDATE;
@@ -513,7 +523,26 @@ public class Updater
         }
         return true;
     }
-        
+    /**
+     * Used to calculate the version string as an Integer
+     */ 
+    private Integer calVer(String s) throws NumberFormatException
+    {
+        if(s.contains("."))
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i <s.length(); i++) 
+            {
+                Character c = s.charAt(i);
+                if (Character.isLetterOrDigit(c)) 
+                {
+                    sb.append(c);
+                }
+            }
+        	return Integer.parseInt(sb.toString());
+        }
+        return Integer.parseInt(s);
+    }
     /**
      * Evaluate whether the version number is marked showing that it should not be updated by this program
      */  
