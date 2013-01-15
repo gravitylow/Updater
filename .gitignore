@@ -1,5 +1,3 @@
 /target/
-/nbproject/
-/build.xml
-/manifest.mf
-/dist/
+/.*
+*.iml
