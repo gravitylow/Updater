@@ -4,7 +4,7 @@
  * This class provides the means to safetly and easily update a plugin, or check to see if it is updated using dev.bukkit.org
  */
 
-package net.h31ix.updater;
+package net.h31ix.anticheat.update;
 
 import java.io.*;
 import java.lang.IllegalThreadStateException;
@@ -149,7 +149,8 @@ public class Updater
             plugin.getLogger().warning("The project slug given ('" + slug + "') is invalid. Please nag the author about this.");
             result = Updater.UpdateResult.FAIL_BADSLUG; // Bad slug! Bad!
         }
-        thread = new Thread(new UpdateRunnable()).start();
+        thread = new Thread(new UpdateRunnable());
+        thread.start();
     }
 
     /**
@@ -185,7 +186,11 @@ public class Updater
      */
     public void waitForThread() {
         if(thread.isAlive()) {
-            thread.join();
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
         }
     }
 
