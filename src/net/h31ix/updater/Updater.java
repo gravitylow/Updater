@@ -4,7 +4,7 @@
  * This class provides the means to safetly and easily update a plugin, or check to see if it is updated using dev.bukkit.org
  */
 
-package net.h31ix.anticheat.update;
+package net.h31ix.updater;
 
 import java.io.*;
 import java.lang.IllegalThreadStateException;
