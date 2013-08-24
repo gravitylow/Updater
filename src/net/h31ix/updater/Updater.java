@@ -1,7 +1,7 @@
 /*
  * Updater for Bukkit.
  *
- * This class provides the means to safetly and easily update a plugin, or check to see if it is updated using dev.bukkit.org
+ * This class provides the means to safely and easily update a plugin, or check to see if it is updated using dev.bukkit.org
  */
 
 package net.h31ix.updater;
