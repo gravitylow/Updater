@@ -2,6 +2,8 @@
  * Updater for Bukkit.
  *
  * This class provides the means to safely and easily update a plugin, or check to see if it is updated using dev.bukkit.org
+ * NOTE: This version of Updater is NOT READY FOR PRODUCTION USE. YOU ARE NOT ON THE BLEEDING EDGE BY USING THIS CLASS, YOU ARE BEING SILLY.
+ * The spec for this method of updating is not fully ready, so please refer to the net/h31ix/updater/Updater.java on the master branch.
  */
 
 package net.gravitydevelopment.updater;
@@ -11,6 +13,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Enumeration;
+import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -50,12 +53,14 @@ public class Updater {
     private File file; // The plugin's file
     private Thread thread; // Updater thread
     private int id = -1; // Project's Curse ID
+    private String apiKey; // BukkitDev ServerMods API key
     private static final String TITLE_VALUE = "name"; // Gets remote file's title
     private static final String LINK_VALUE = "downloadUrl"; // Gets remote file's download link
     private static final String QUERY = "/servermods/files?projectIds="; // Path to GET
     private static final String HOST = "https://api.curseforge.com"; // Slugs will be appended to this to get to the project's RSS feed
     private String[] noUpdateTag = {"-DEV", "-PRE"}; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
+    private YamlConfiguration config; // Config file
     private String updateFolder = YamlConfiguration.loadConfiguration(new File("bukkit.yml")).getString("settings.update-folder"); // The folder that downloads will be placed in
     private Updater.UpdateResult result = Updater.UpdateResult.SUCCESS; // Used for determining the outcome of the update process
 
@@ -72,6 +77,10 @@ public class Updater {
          */
         NO_UPDATE,
         /**
+         * The server administrator has disabled the updating system
+         */
+        DISABLED,
+        /**
          * The updater found an update, but was unable to download it.
          */
         FAIL_DOWNLOAD,
@@ -87,6 +96,10 @@ public class Updater {
          * The id provided by the plugin running the updater was invalid and doesn't exist on DBO.
          */
         FAIL_BADID,
+        /**
+         * The server administrator has not, or has improperly configured their API key in the configuration
+         */
+        FAIL_APIKEY,
         /**
          * The updater found an update, but because of the UpdateType being set to NO_DOWNLOAD, it wasn't downloaded.
          */
@@ -127,6 +140,48 @@ public class Updater {
         this.file = file;
         this.id = id;
 
+        File pluginFile = plugin.getDataFolder().getParentFile();
+        File updaterFile = new File(pluginFile, "Updater");
+        File updaterConfigFile = new File(updaterFile, "config.yml");
+
+        if(!updaterFile.exists()) {
+            updaterFile.mkdir();
+        }
+        if(!updaterConfigFile.exists()) {
+            try {
+                updaterConfigFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        config = YamlConfiguration.loadConfiguration(updaterConfigFile);
+
+        config.addDefault("api-key", "PUT_API_KEY_HERE");
+        config.addDefault("disable", false);
+
+        if(config.get("api-key", null) == null) {
+            config.options().copyDefaults(true);
+            try {
+                config.save(updaterConfigFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if(config.getBoolean("disable")) {
+            result = UpdateResult.DISABLED;
+            return;
+        }
+
+        String key = config.getString("api-key");
+        if(!key.equals("PUT_API_KEY_HERE")) {
+            apiKey = key;
+        } else {
+            plugin.getLogger().log(Level.INFO, "The plugin updater cannot function until you have properly configured plugins/Updater/config.yml");
+            result = UpdateResult.FAIL_APIKEY;
+            return;
+        }
+
         try {
             url = new URL(HOST + QUERY + id);
         } catch (MalformedURLException e) {
@@ -166,7 +221,7 @@ public class Updater {
      * before alloowing anyone to check the result.
      */
     public void waitForThread() {
-        if (thread.isAlive()) {
+        if (thread != null && thread.isAlive()) {
             try {
                 thread.join();
             } catch (InterruptedException e) {
@@ -429,7 +484,7 @@ public class Updater {
     public void read() {
         try {
             URLConnection conn = url.openConnection();
-            conn.addRequestProperty("X-API-Key", "1af12d93b7722923d2da7a417f37b190cabdd36d");
+            conn.addRequestProperty("X-API-Key", apiKey);
             conn.addRequestProperty("User-Agent", "Updater (by Gravity)");
 
             conn.setDoOutput(true);
@@ -441,6 +496,9 @@ public class Updater {
             versionTitle = (String) ((JSONObject) array.get(array.size() - 1)).get(TITLE_VALUE);
             versionLink = (String) ((JSONObject) array.get(array.size() - 1)).get(LINK_VALUE);
         } catch (IOException e) {
+            plugin.getLogger().warning("dev.bukkit.org cannot be reached for update polling with the API key configured in plugins/Updater/config.yml");
+            plugin.getLogger().warning("If this is the first time you are seeing this error and have not recently changed your configuration, dev.bukkit.org may be temporarily unreachable.");
+            result = UpdateResult.FAIL_APIKEY;
             e.printStackTrace();
         }
     }
