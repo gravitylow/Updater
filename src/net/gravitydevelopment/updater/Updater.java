@@ -2,8 +2,6 @@
  * Updater for Bukkit.
  *
  * This class provides the means to safely and easily update a plugin, or check to see if it is updated using dev.bukkit.org
- * NOTE: This version of Updater is NOT READY FOR PRODUCTION USE. YOU ARE NOT ON THE BLEEDING EDGE BY USING THIS CLASS, YOU ARE BEING SILLY.
- * The spec for this method of updating is not fully ready, so please refer to the net/h31ix/updater/Updater.java on the master branch.
  */
 
 package net.gravitydevelopment.updater;
@@ -53,12 +51,12 @@ public class Updater {
     private File file; // The plugin's file
     private Thread thread; // Updater thread
     private int id = -1; // Project's Curse ID
-    private String apiKey; // BukkitDev ServerMods API key
+    private String apiKey = null; // BukkitDev ServerMods API key
     private static final String TITLE_VALUE = "name"; // Gets remote file's title
     private static final String LINK_VALUE = "downloadUrl"; // Gets remote file's download link
     private static final String QUERY = "/servermods/files?projectIds="; // Path to GET
     private static final String HOST = "https://api.curseforge.com"; // Slugs will be appended to this to get to the project's RSS feed
-    private String[] noUpdateTag = {"-DEV", "-PRE"}; // If the version number contains one of these, don't update.
+    private String[] noUpdateTag = {"-DEV", "-PRE", "-SNAPSHOT"}; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
     private YamlConfiguration config; // Config file
     private String updateFolder = YamlConfiguration.loadConfiguration(new File("bukkit.yml")).getString("settings.update-folder"); // The folder that downloads will be placed in
@@ -174,13 +172,11 @@ public class Updater {
         }
 
         String key = config.getString("api-key");
-        if(!key.equals("PUT_API_KEY_HERE")) {
-            apiKey = key;
-        } else {
-            plugin.getLogger().log(Level.INFO, "The plugin updater cannot function until you have properly configured plugins/Updater/config.yml");
-            result = UpdateResult.FAIL_APIKEY;
-            return;
+        if(key.equalsIgnoreCase("PUT_API_KEY_HERE") || key.equals("")) {
+            key = null;
         }
+
+        apiKey = key;
 
         try {
             url = new URL(HOST + QUERY + id);
@@ -225,7 +221,7 @@ public class Updater {
             try {
                 thread.join();
             } catch (InterruptedException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                e.printStackTrace();
             }
         }
     }
@@ -484,7 +480,9 @@ public class Updater {
     public void read() {
         try {
             URLConnection conn = url.openConnection();
-            conn.addRequestProperty("X-API-Key", apiKey);
+            if(apiKey != null) {
+                conn.addRequestProperty("X-API-Key", apiKey);
+            }
             conn.addRequestProperty("User-Agent", "Updater (by Gravity)");
 
             conn.setDoOutput(true);
