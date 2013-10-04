@@ -11,7 +11,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Enumeration;
-import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -38,24 +37,28 @@ import org.json.simple.JSONValue;
  */
 
 public class Updater {
+
     private Plugin plugin;
     private UpdateType type;
     private String versionTitle;
     private String versionLink;
     private long totalSize; // Holds the total size of the file
-    //private double downloadedSize; TODO: Holds the number of bytes downloaded
+
     private int sizeLine; // Used for detecting file size
     private int multiplier; // Used for determining when to broadcast download updates
     private boolean announce; // Whether to announce file downloads
+
     private URL url; // Connecting to RSS
     private File file; // The plugin's file
     private Thread thread; // Updater thread
+
     private int id = -1; // Project's Curse ID
     private String apiKey = null; // BukkitDev ServerMods API key
     private static final String TITLE_VALUE = "name"; // Gets remote file's title
     private static final String LINK_VALUE = "downloadUrl"; // Gets remote file's download link
     private static final String QUERY = "/servermods/files?projectIds="; // Path to GET
     private static final String HOST = "https://api.curseforge.com"; // Slugs will be appended to this to get to the project's RSS feed
+
     private String[] noUpdateTag = {"-DEV", "-PRE", "-SNAPSHOT"}; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
     private YamlConfiguration config; // Config file
@@ -523,8 +526,6 @@ public class Updater {
                     }
                 }
             }
-            // DEBUG
-            System.out.println("RESULT: " + result + " w/ title " + versionTitle + " and link " + versionLink);
         }
     }
 }
