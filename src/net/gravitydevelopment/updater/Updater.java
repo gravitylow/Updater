@@ -98,7 +98,7 @@ public class Updater {
          */
         FAIL_BADID,
         /**
-         * The server administrator has not, or has improperly configured their API key in the configuration
+         * The server administrator has improperly configured their API key in the configuration
          */
         FAIL_APIKEY,
         /**
@@ -145,13 +145,14 @@ public class Updater {
         File updaterFile = new File(pluginFile, "Updater");
         File updaterConfigFile = new File(updaterFile, "config.yml");
 
-        if(!updaterFile.exists()) {
+        if (!updaterFile.exists()) {
             updaterFile.mkdir();
         }
-        if(!updaterConfigFile.exists()) {
+        if (!updaterConfigFile.exists()) {
             try {
                 updaterConfigFile.createNewFile();
             } catch (IOException e) {
+                plugin.getLogger().severe("The updater could not create a configuration in " + updaterFile.getAbsolutePath());
                 e.printStackTrace();
             }
         }
@@ -160,22 +161,23 @@ public class Updater {
         config.addDefault("api-key", "PUT_API_KEY_HERE");
         config.addDefault("disable", false);
 
-        if(config.get("api-key", null) == null) {
+        if (config.get("api-key", null) == null) {
             config.options().copyDefaults(true);
             try {
                 config.save(updaterConfigFile);
             } catch (IOException e) {
+                plugin.getLogger().severe("The updater could not save the configuration in " + updaterFile.getAbsolutePath());
                 e.printStackTrace();
             }
         }
 
-        if(config.getBoolean("disable")) {
+        if (config.getBoolean("disable")) {
             result = UpdateResult.DISABLED;
             return;
         }
 
         String key = config.getString("api-key");
-        if(key.equalsIgnoreCase("PUT_API_KEY_HERE") || key.equals("")) {
+        if (key.equalsIgnoreCase("PUT_API_KEY_HERE") || key.equals("")) {
             key = null;
         }
 
@@ -184,6 +186,8 @@ public class Updater {
         try {
             url = new URL(HOST + QUERY + id);
         } catch (MalformedURLException e) {
+            plugin.getLogger().severe("The project ID provided for updating, " + id + " is invalid.");
+            result = UpdateResult.FAIL_BADID;
             e.printStackTrace();
         }
 
@@ -217,7 +221,7 @@ public class Updater {
 
     /**
      * As the result of Updater output depends on the thread's completion, it is necessary to wait for the thread to finish
-     * before alloowing anyone to check the result.
+     * before allowing anyone to check the result.
      */
     public void waitForThread() {
         if (thread != null && thread.isAlive()) {
@@ -356,9 +360,9 @@ public class Updater {
             new File(zipPath).delete();
             fSourceZip.delete();
         } catch (IOException ex) {
-            ex.printStackTrace();
             plugin.getLogger().warning("The auto-updater tried to unzip a new update file, but was unsuccessful.");
             result = Updater.UpdateResult.FAIL_DOWNLOAD;
+            ex.printStackTrace();
         }
         new File(file).delete();
     }
@@ -373,50 +377,6 @@ public class Updater {
             }
         }
         return false;
-    }
-
-    /**
-     * Obtain the direct download file url from the file's page.
-     */
-    private String getFile(String link) {
-        String download = null;
-        try {
-            // Open a connection to the page
-            URL url = new URL(link);
-            URLConnection urlConn = url.openConnection();
-            InputStreamReader inStream = new InputStreamReader(urlConn.getInputStream());
-            BufferedReader buff = new BufferedReader(inStream);
-
-            int counter = 0;
-            String line;
-            while ((line = buff.readLine()) != null) {
-                counter++;
-                // Search for the download link
-                if (line.contains("<li class=\"user-action user-action-download\">")) {
-                    // Get the raw link
-                    download = line.split("<a href=\"")[1].split("\">Download</a>")[0];
-                }
-                // Search for size
-                else if (line.contains("<dt>Size</dt>")) {
-                    sizeLine = counter + 1;
-                } else if (counter == sizeLine) {
-                    String size = line.replaceAll("<dd>", "").replaceAll("</dd>", "");
-                    multiplier = size.contains("MiB") ? 1048576 : 1024;
-                    size = size.replace(" KiB", "").replace(" MiB", "");
-                    totalSize = (long) (Double.parseDouble(size) * multiplier);
-                }
-            }
-            urlConn = null;
-            inStream = null;
-            buff.close();
-            buff = null;
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            plugin.getLogger().warning("The auto-updater tried to contact dev.bukkit.org, but was unsuccessful.");
-            result = Updater.UpdateResult.FAIL_DBO;
-            return null;
-        }
-        return download;
     }
 
     /**
@@ -480,10 +440,12 @@ public class Updater {
         return false;
     }
 
-    public void read() {
+    public boolean read() {
         try {
             URLConnection conn = url.openConnection();
-            if(apiKey != null) {
+            conn.setConnectTimeout(5000);
+
+            if (apiKey != null) {
                 conn.addRequestProperty("X-API-Key", apiKey);
             }
             conn.addRequestProperty("User-Agent", "Updater (by Gravity)");
@@ -494,13 +456,29 @@ public class Updater {
             String response = reader.readLine();
 
             JSONArray array = (JSONArray) JSONValue.parse(response);
+
+            if (array.size() == 0) {
+                plugin.getLogger().warning("The updater could not find any files for the project id " + id);
+                result = UpdateResult.FAIL_BADID;
+                return false;
+            }
+
             versionTitle = (String) ((JSONObject) array.get(array.size() - 1)).get(TITLE_VALUE);
             versionLink = (String) ((JSONObject) array.get(array.size() - 1)).get(LINK_VALUE);
+
+            return true;
         } catch (IOException e) {
-            plugin.getLogger().warning("dev.bukkit.org cannot be reached for update polling with the API key configured in plugins/Updater/config.yml");
-            plugin.getLogger().warning("If this is the first time you are seeing this error and have not recently changed your configuration, dev.bukkit.org may be temporarily unreachable.");
-            result = UpdateResult.FAIL_APIKEY;
+            if (e.getMessage().contains("HTTP response code: 403")) {
+                plugin.getLogger().warning("dev.bukkit.org rejected the API key provided in plugins/Updater/config.yml");
+                plugin.getLogger().warning("Please double-check your configuration to ensure it is correct.");
+                result = UpdateResult.FAIL_APIKEY;
+            } else {
+                plugin.getLogger().warning("The updater could not contact dev.bukkit.org for updating.");
+                plugin.getLogger().warning("If you have not recently modified your configuration and this is the first time you are seeing this message, the site may be experiencing temporary downtime.");
+                result = UpdateResult.FAIL_DBO;
+            }
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -510,19 +488,19 @@ public class Updater {
         public void run() {
             if (url != null) {
                 // Obtain the results of the project's file feed
-                read();
-                if (versionCheck(versionTitle)) {
-                    String fileLink = getFile(versionLink);
-                    if (fileLink != null && type != UpdateType.NO_DOWNLOAD) {
-                        String name = file.getName();
-                        // If it's a zip file, it shouldn't be downloaded as the plugin's name
-                        if (fileLink.endsWith(".zip")) {
-                            String[] split = fileLink.split("/");
-                            name = split[split.length - 1];
+                if (read()) {
+                    if (versionCheck(versionTitle)) {
+                        if (versionLink != null && type != UpdateType.NO_DOWNLOAD) {
+                            String name = file.getName();
+                            // If it's a zip file, it shouldn't be downloaded as the plugin's name
+                            if (versionLink.endsWith(".zip")) {
+                                String[] split = versionLink.split("/");
+                                name = split[split.length - 1];
+                            }
+                            saveFile(new File("plugins/" + updateFolder), name, versionLink);
+                        } else {
+                            result = UpdateResult.UPDATE_AVAILABLE;
                         }
-                        saveFile(new File("plugins/" + updateFolder), name, fileLink);
-                    } else {
-                        result = UpdateResult.UPDATE_AVAILABLE;
                     }
                 }
             }
