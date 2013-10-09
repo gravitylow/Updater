@@ -40,9 +40,10 @@ public class Updater {
 
     private Plugin plugin;
     private UpdateType type;
-    private String versionTitle;
+    private String versionName;
     private String versionLink;
-    private long totalSize; // Holds the total size of the file
+    private String versionType;
+    private String versionGameVersion;
 
     private int sizeLine; // Used for detecting file size
     private int multiplier; // Used for determining when to broadcast download updates
@@ -56,6 +57,8 @@ public class Updater {
     private String apiKey = null; // BukkitDev ServerMods API key
     private static final String TITLE_VALUE = "name"; // Gets remote file's title
     private static final String LINK_VALUE = "downloadUrl"; // Gets remote file's download link
+    private static final String TYPE_VALUE = "releaseType"; // Gets remote file's release type
+    private static final String VERSION_VALUE = "gameVersion"; // Gets remote file's build version
     private static final String QUERY = "/servermods/files?projectIds="; // Path to GET
     private static final String HOST = "https://api.curseforge.com"; // Slugs will be appended to this to get to the project's RSS feed
 
@@ -204,26 +207,34 @@ public class Updater {
     }
 
     /**
-     * Get the total bytes of the file (can only be used after running a version check or a normal run).
+     * Get the latest version's release type (release, beta, or alpha)
      */
-    public long getFileSize() {
+    public String getLatestType() {
         waitForThread();
-        return totalSize;
+        return versionType;
     }
 
     /**
-     * Get the version string latest file avaliable online.
+     * Get the latest version's game version
      */
-    public String getLatestVersionString() {
+    public String getLatestGameVersion() {
         waitForThread();
-        return versionTitle;
+        return versionGameVersion;
+    }
+
+    /**
+     * Get the latest version's name
+     */
+    public String getLatestName() {
+        waitForThread();
+        return versionName;
     }
 
     /**
      * As the result of Updater output depends on the thread's completion, it is necessary to wait for the thread to finish
      * before allowing anyone to check the result.
      */
-    public void waitForThread() {
+    private void waitForThread() {
         if (thread != null && thread.isAlive()) {
             try {
                 thread.join();
@@ -251,7 +262,7 @@ public class Updater {
 
             byte[] data = new byte[BYTE_SIZE];
             int count;
-            if (announce) plugin.getLogger().info("About to download a new update: " + versionTitle);
+            if (announce) plugin.getLogger().info("About to download a new update: " + versionName);
             long downloaded = 0;
             while ((count = in.read(data, 0, BYTE_SIZE)) != -1) {
                 downloaded += count;
@@ -370,7 +381,7 @@ public class Updater {
     /**
      * Check if the name of a jar is one of the plugins currently installed, used for extracting the correct files out of a zip.
      */
-    public boolean pluginFile(String name) {
+    private boolean pluginFile(String name) {
         for (File file : new File("plugins").listFiles()) {
             if (file.getName().equals(name)) {
                 return true;
@@ -440,7 +451,7 @@ public class Updater {
         return false;
     }
 
-    public boolean read() {
+    private boolean read() {
         try {
             URLConnection conn = url.openConnection();
             conn.setConnectTimeout(5000);
@@ -463,8 +474,10 @@ public class Updater {
                 return false;
             }
 
-            versionTitle = (String) ((JSONObject) array.get(array.size() - 1)).get(TITLE_VALUE);
+            versionName = (String) ((JSONObject) array.get(array.size() - 1)).get(TITLE_VALUE);
             versionLink = (String) ((JSONObject) array.get(array.size() - 1)).get(LINK_VALUE);
+            versionType = (String) ((JSONObject) array.get(array.size() - 1)).get(TYPE_VALUE);
+            versionGameVersion = (String) ((JSONObject) array.get(array.size() - 1)).get(VERSION_VALUE);
 
             return true;
         } catch (IOException e) {
@@ -489,7 +502,7 @@ public class Updater {
             if (url != null) {
                 // Obtain the results of the project's file feed
                 if (read()) {
-                    if (versionCheck(versionTitle)) {
+                    if (versionCheck(versionName)) {
                         if (versionLink != null && type != UpdateType.NO_DOWNLOAD) {
                             String name = file.getName();
                             // If it's a zip file, it shouldn't be downloaded as the plugin's name
