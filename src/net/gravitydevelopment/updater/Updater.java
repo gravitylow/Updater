@@ -45,8 +45,6 @@ public class Updater {
     private String versionType;
     private String versionGameVersion;
 
-    private int sizeLine; // Used for detecting file size
-    private int multiplier; // Used for determining when to broadcast download updates
     private boolean announce; // Whether to announce file downloads
 
     private URL url; // Connecting to RSS
