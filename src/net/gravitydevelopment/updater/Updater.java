@@ -493,7 +493,6 @@ public class Updater {
         }
     }
 
-
     private class UpdateRunnable implements Runnable {
 
         public void run() {
