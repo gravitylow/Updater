@@ -63,7 +63,7 @@ public class Updater {
     private static final String[] NO_UPDATE_TAG = { "-DEV", "-PRE", "-SNAPSHOT" }; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
     private YamlConfiguration config; // Config file
-    private String updateFolder = YamlConfiguration.loadConfiguration(new File("bukkit.yml")).getString("settings.update-folder"); // The folder that downloads will be placed in
+    private String updateFolder;// The folder that downloads will be placed in
     private Updater.UpdateResult result = Updater.UpdateResult.SUCCESS; // Used for determining the outcome of the update process
 
     /**
@@ -141,6 +141,7 @@ public class Updater {
         this.announce = announce;
         this.file = file;
         this.id = id;
+        this.updateFolder = plugin.getServer().getUpdateFolder();
 
         File pluginFile = plugin.getDataFolder().getParentFile();
         File updaterFile = new File(pluginFile, "Updater");
@@ -271,7 +272,7 @@ public class Updater {
                 }
             }
             //Just a quick check to make sure we didn't leave any files from last time...
-            for (File xFile : new File("plugins/" + updateFolder).listFiles()) {
+            for (File xFile : new File(plugin.getDataFolder().getParent(), updateFolder).listFiles()) {
                 if (xFile.getName().endsWith(".zip")) {
                     xFile.delete();
                 }
@@ -328,7 +329,7 @@ public class Updater {
                     bis.close();
                     String name = destinationFilePath.getName();
                     if (name.endsWith(".jar") && pluginFile(name)) {
-                        destinationFilePath.renameTo(new File("plugins/" + updateFolder + "/" + name));
+                        destinationFilePath.renameTo(new File(plugin.getDataFolder().getParent(), updateFolder + "/" + name));
                     }
                 }
                 entry = null;
@@ -342,7 +343,7 @@ public class Updater {
             for (File dFile : new File(zipPath).listFiles()) {
                 if (dFile.isDirectory()) {
                     if (pluginFile(dFile.getName())) {
-                        File oFile = new File("plugins/" + dFile.getName()); // Get current dir
+                        File oFile = new File(plugin.getDataFolder().getParent(), dFile.getName()); // Get current dir
                         File[] contents = oFile.listFiles(); // List of existing files in the current dir
                         for (File cFile : dFile.listFiles()) // Loop through all the files in the new dir
                         {
@@ -410,7 +411,8 @@ public class Updater {
                 }
             } else {
                 // The file's name did not contain the string 'vVersion'
-                plugin.getLogger().warning("The author of this plugin (" + plugin.getDescription().getAuthors().get(0) + ") has misconfigured their Auto Update system");
+                String authorInfo = plugin.getDescription().getAuthors().size() == 0 ? "" : " (" + plugin.getDescription().getAuthors().get(0) + ")";
+                plugin.getLogger().warning("The author of this plugin" + authorInfo + " has misconfigured their Auto Update system");
                 plugin.getLogger().warning("Files uploaded to BukkitDev should contain the version number, seperated from the name by a 'v', such as PluginName v1.0");
                 plugin.getLogger().warning("Please notify the author of this error.");
                 result = Updater.UpdateResult.FAIL_NOVERSION;
@@ -507,7 +509,7 @@ public class Updater {
                                 String[] split = versionLink.split("/");
                                 name = split[split.length - 1];
                             }
-                            saveFile(new File("plugins/" + updateFolder), name, versionLink);
+                            saveFile(new File(plugin.getDataFolder().getParent(), updateFolder), name, versionLink);
                         } else {
                             result = UpdateResult.UPDATE_AVAILABLE;
                         }
