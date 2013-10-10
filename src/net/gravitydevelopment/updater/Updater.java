@@ -60,7 +60,7 @@ public class Updater {
     private static final String QUERY = "/servermods/files?projectIds="; // Path to GET
     private static final String HOST = "https://api.curseforge.com"; // Slugs will be appended to this to get to the project's RSS feed
 
-    private String[] noUpdateTag = { "-DEV", "-PRE", "-SNAPSHOT" }; // If the version number contains one of these, don't update.
+    private static final String[] NO_UPDATE_TAG = { "-DEV", "-PRE", "-SNAPSHOT" }; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
     private YamlConfiguration config; // Config file
     private String updateFolder = YamlConfiguration.loadConfiguration(new File("bukkit.yml")).getString("settings.update-folder"); // The folder that downloads will be placed in
@@ -441,7 +441,7 @@ public class Updater {
      * Evaluate whether the version number is marked showing that it should not be updated by this program
      */
     private boolean hasTag(String version) {
-        for (String string : noUpdateTag) {
+        for (String string : NO_UPDATE_TAG) {
             if (version.contains(string)) {
                 return true;
             }
