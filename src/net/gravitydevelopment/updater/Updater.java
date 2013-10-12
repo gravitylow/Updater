@@ -210,7 +210,7 @@ public class Updater {
     }
 
     /**
-     * Get the latest version's release type (release, beta, or alpha)
+     * Get the latest version's release type (release, beta, or alpha).
      */
     public String getLatestType() {
         this.waitForThread();
@@ -218,7 +218,7 @@ public class Updater {
     }
 
     /**
-     * Get the latest version's game version
+     * Get the latest version's game version.
      */
     public String getLatestGameVersion() {
         this.waitForThread();
@@ -226,11 +226,19 @@ public class Updater {
     }
 
     /**
-     * Get the latest version's name
+     * Get the latest version's name.
      */
     public String getLatestName() {
         this.waitForThread();
         return this.versionName;
+    }
+
+    /**
+     * Get the latest version's file link.
+     */
+    public String getLatestFileLink() {
+        this.waitForThread();
+        return this.versionLink;
     }
 
     /**
