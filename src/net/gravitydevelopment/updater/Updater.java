@@ -413,14 +413,8 @@ public class Updater {
             final String version = this.plugin.getDescription().getVersion();
             if (title.split(" v").length == 2) {
                 final String remoteVersion = title.split(" v")[1].split(" ")[0]; // Get the newest file's version number
-                int remVer = -1, curVer = 0;
-                try {
-                    remVer = this.calVer(remoteVersion);
-                    curVer = this.calVer(version);
-                } catch (final NumberFormatException nfe) {
-                    remVer = -1;
-                }
-                if (this.hasTag(version) || version.equalsIgnoreCase(remoteVersion) || (curVer >= remVer)) {
+
+                if (this.hasTag(version) || version.equalsIgnoreCase(remoteVersion)) {
                     // We already have the latest version, or this build is tagged for no-update
                     this.result = Updater.UpdateResult.NO_UPDATE;
                     return false;
@@ -429,30 +423,13 @@ public class Updater {
                 // The file's name did not contain the string 'vVersion'
                 final String authorInfo = this.plugin.getDescription().getAuthors().size() == 0 ? "" : " (" + this.plugin.getDescription().getAuthors().get(0) + ")";
                 this.plugin.getLogger().warning("The author of this plugin" + authorInfo + " has misconfigured their Auto Update system");
-                this.plugin.getLogger().warning("Files uploaded to BukkitDev should contain the version number, seperated from the name by a 'v', such as PluginName v1.0");
+                this.plugin.getLogger().warning("File versions should follow the format 'PluginName vVERSION'");
                 this.plugin.getLogger().warning("Please notify the author of this error.");
                 this.result = Updater.UpdateResult.FAIL_NOVERSION;
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * Used to calculate the version string as an Integer
-     */
-    private Integer calVer(String s) throws NumberFormatException {
-        if (s.contains(".")) {
-            final StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < s.length(); i++) {
-                final Character c = s.charAt(i);
-                if (Character.isLetterOrDigit(c)) {
-                    sb.append(c);
-                }
-            }
-            return Integer.parseInt(sb.toString());
-        }
-        return Integer.parseInt(s);
     }
 
     /**
