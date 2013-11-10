@@ -63,7 +63,7 @@ public class Updater {
 
     private static final String[] NO_UPDATE_TAG = { "-DEV", "-PRE", "-SNAPSHOT" }; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
-    private YamlConfiguration config; // Config file
+    private final YamlConfiguration config = new YamlConfiguration(); // Config file
     private String updateFolder;// The folder that downloads will be placed in
     private Updater.UpdateResult result = Updater.UpdateResult.SUCCESS; // Used for determining the outcome of the update process
 
@@ -147,34 +147,33 @@ public class Updater {
         final File pluginFile = plugin.getDataFolder().getParentFile();
         final File updaterFile = new File(pluginFile, "Updater");
         final File updaterConfigFile = new File(updaterFile, "config.yml");
-
-        if (!updaterFile.exists()) {
-            updaterFile.mkdir();
-        }
-        if (!updaterConfigFile.exists()) {
-            try {
-                updaterConfigFile.createNewFile();
-            } catch (final IOException e) {
-                plugin.getLogger().severe("The updater could not create a configuration in " + updaterFile.getAbsolutePath());
-                e.printStackTrace();
-            }
-        }
-        this.config = YamlConfiguration.loadConfiguration(updaterConfigFile);
-
+        
         this.config.options().header("This configuration file affects all plugins using the Updater system (version 2+ - http://forums.bukkit.org/threads/96681/ )" + '\n'
                 + "If you wish to use your API key, read http://wiki.bukkit.org/ServerMods_API and place it below." + '\n'
                 + "Some updating systems will not adhere to the disabled value, but these may be turned off in their plugin's configuration.");
         this.config.addDefault("api-key", "PUT_API_KEY_HERE");
         this.config.addDefault("disable", false);
 
-        if (this.config.get("api-key", null) == null) {
-            this.config.options().copyDefaults(true);
-            try {
+        if (!updaterFile.exists()) {
+            updaterFile.mkdir();
+        }
+
+        boolean createFile = !updaterConfigFile.exists();
+        try {
+            if (createFile) {
+                updaterConfigFile.createNewFile();
+                this.config.options().copyDefaults(true);
                 this.config.save(updaterConfigFile);
-            } catch (final IOException e) {
-                plugin.getLogger().severe("The updater could not save the configuration in " + updaterFile.getAbsolutePath());
-                e.printStackTrace();
+            } else {
+                this.config.load(updaterConfigFile);
             }
+        } catch (final Exception e) {
+            if (createFile) {
+                plugin.getLogger().severe("The updater could not create configuration at " + updaterFile.getAbsolutePath());
+            } else {
+                plugin.getLogger().severe("The updater could not load configuration at " + updaterFile.getAbsolutePath());
+            }
+            e.printStackTrace();
         }
 
         if (this.config.getBoolean("disable")) {
