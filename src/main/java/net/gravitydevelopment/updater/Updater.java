@@ -62,6 +62,7 @@ public class Updater {
     private static final String QUERY = "/servermods/files?projectIds="; // Path to GET
     private static final String HOST = "https://api.curseforge.com"; // Slugs will be appended to this to get to the project's RSS feed
 
+    private static final String USER_AGENT = "Updater (by Gravity)";
     private static final String delimiter = "^v|[\\s_-]v"; // Used for locating version numbers in file names
     private static final String[] NO_UPDATE_TAG = { "-DEV", "-PRE", "-SNAPSHOT" }; // If the version number contains one of these, don't update.
     private static final int BYTE_SIZE = 1024; // Used for downloading files
@@ -307,7 +308,7 @@ public class Updater {
             final URL url = new URL(link);
             final int fileLength = url.openConnection().getContentLength();
             in = new BufferedInputStream(url.openStream());
-            fout = new FileOutputStream(folder.getAbsolutePath() + "/" + file);
+            fout = new FileOutputStream(folder.getAbsolutePath() + File.separator + file);
 
             final byte[] data = new byte[Updater.BYTE_SIZE];
             int count;
@@ -330,7 +331,7 @@ public class Updater {
                 }
             }
             // Check to see if it's a zip file, if it is, unzip it.
-            final File dFile = new File(folder.getAbsolutePath() + "/" + file);
+            final File dFile = new File(folder.getAbsolutePath() + File.separator + file);
             if (dFile.getName().endsWith(".zip")) {
                 // Unzip
                 this.unzip(dFile.getCanonicalPath());
@@ -385,7 +386,7 @@ public class Updater {
                     bis.close();
                     final String name = destinationFilePath.getName();
                     if (name.endsWith(".jar") && this.pluginFile(name)) {
-                        destinationFilePath.renameTo(new File(this.plugin.getDataFolder().getParent(), this.updateFolder + "/" + name));
+                        destinationFilePath.renameTo(new File(this.plugin.getDataFolder().getParent(), this.updateFolder + File.separator + name));
                     }
                 }
                 entry = null;
@@ -413,7 +414,7 @@ public class Updater {
                             }
                             if (!found) {
                                 // Move the new file into the current dir
-                                cFile.renameTo(new File(oFile.getCanonicalFile() + "/" + cFile.getName()));
+                                cFile.renameTo(new File(oFile.getCanonicalFile() + File.separator + cFile.getName()));
                             } else {
                                 // This file already exists, so we don't need it anymore.
                                 cFile.delete();
@@ -505,7 +506,7 @@ public class Updater {
             if (this.apiKey != null) {
                 conn.addRequestProperty("X-API-Key", this.apiKey);
             }
-            conn.addRequestProperty("User-Agent", "Updater (by Gravity)");
+            conn.addRequestProperty("User-Agent", Updater.USER_AGENT);
 
             conn.setDoOutput(true);
 
