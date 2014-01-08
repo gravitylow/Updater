@@ -1,0 +1,53 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+    <groupId>net.gravitydevelopment.updater</groupId>
+	<artifactId>updater</artifactId>
+	<version>2.0</version>
+	<packaging>jar</packaging>
+	<name>Updater</name>
+	<url>http://forums.bukkit.org/threads/updater-2-0-easy-safe-and-policy-compliant-auto-updating-for-your-plugins-new.96681/</url>
+	<build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+        </plugins>
+        <extensions>
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-file</artifactId>
+                <version>2.2</version>
+            </extension>
+        </extensions>
+	</build>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+	<repositories>
+		<repository>
+			<id>bukkit-repo</id>
+			<url>http://repo.bukkit.org/content/groups/public</url>
+		</repository>
+	</repositories>
+	<dependencies>
+		<dependency>
+			<groupId>org.bukkit</groupId>
+			<artifactId>bukkit</artifactId>
+			<version>1.6.4-R2.0</version>
+		</dependency>
+	</dependencies>
+    <distributionManagement>
+        <repository>
+            <id>gravity-repo</id>
+            <url>file:///var/lib/jenkins/repo</url>
+        </repository>
+    </distributionManagement>
+</project>
