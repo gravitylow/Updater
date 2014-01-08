@@ -35,7 +35,7 @@ import org.json.simple.JSONValue;
  * If you are unsure about these rules, please read the plugin submission guidelines: http://goo.gl/8iU5l
  *
  * @author Gravity
- * @version 2.0
+ * @version 2.1
  */
 
 public class Updater {
@@ -194,7 +194,7 @@ public class Updater {
             } else {
                 plugin.getLogger().severe("The updater could not load configuration at " + updaterFile.getAbsolutePath());
             }
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, null, e);
         }
 
         if (this.config.getBoolean("disable")) {
@@ -224,7 +224,7 @@ public class Updater {
      * Get the result of the update process.
      *
      * @return result of the update process.
-     * @see net.gravitydevelopment.updater.Updater.UpdateResult
+     * @see UpdateResult
      */
     public Updater.UpdateResult getResult() {
         this.waitForThread();
@@ -235,13 +235,15 @@ public class Updater {
      * Get the latest version's release type.
      *
      * @return latest version's release type.
-     * @see net.gravitydevelopment.updater.Updater.ReleaseType
+     * @see ReleaseType
      */
     public ReleaseType getLatestType() {
         this.waitForThread();
-        for (ReleaseType type : ReleaseType.values()) {
-            if (this.versionType.equals(type.name().toLowerCase())) {
-                return type;
+        if (this.versionType != null) {
+            for (ReleaseType type : ReleaseType.values()) {
+                if (this.versionType.equals(type.name().toLowerCase())) {
+                    return type;
+                }
             }
         }
         return null;
