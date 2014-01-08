@@ -408,11 +408,12 @@ public class Updater {
     /**
      * Check to see if the program should continue by evaluation whether the plugin is already updated, or shouldn't be updated
      */
+    private final String delimiter = "^v|[\\s_-]v";
     private boolean versionCheck(String title) {
         if (this.type != UpdateType.NO_VERSION_CHECK) {
             final String version = this.plugin.getDescription().getVersion();
-            if (title.split(" v").length == 2) {
-                final String remoteVersion = title.split(" v")[1].split(" ")[0]; // Get the newest file's version number
+            if (title.split(delimiter).length == 2) {
+                final String remoteVersion = title.split(delimiter)[1].split(" ")[0]; // Get the newest file's version number
 
                 if (this.hasTag(version) || version.equalsIgnoreCase(remoteVersion)) {
                     // We already have the latest version, or this build is tagged for no-update
