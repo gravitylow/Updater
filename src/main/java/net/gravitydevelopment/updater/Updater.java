@@ -459,11 +459,11 @@ public class Updater {
      */
     private boolean versionCheck(String title) {
         if (this.type != UpdateType.NO_VERSION_CHECK) {
-            final String version = this.plugin.getDescription().getVersion();
+            final String localVersion = this.plugin.getDescription().getVersion();
             if (title.split(delimiter).length == 2) {
                 final String remoteVersion = title.split(delimiter)[1].split(" ")[0]; // Get the newest file's version number
 
-                if (this.hasTag(version) || version.equalsIgnoreCase(remoteVersion)) {
+                if (this.hasTag(localVersion) || !this.shouldUpdate(localVersion, remoteVersion)) {
                     // We already have the latest version, or this build is tagged for no-update
                     this.result = Updater.UpdateResult.NO_UPDATE;
                     return false;
@@ -479,6 +479,37 @@ public class Updater {
             }
         }
         return true;
+    }
+
+    /**
+     * <b>If you wish to run mathematical versioning checks, edit this method.</b>
+     * <p>
+     * With default behavior, Updater will NOT verify that a remote version available on BukkitDev
+     * which is not this version is indeed an "update".
+     * If a version is present on BukkitDev that is not the version that is currently running,
+     * Updater will assume that it is a newer version.
+     * This is because there is no standard versioning scheme, and creating a calculation that can
+     * determine whether a new update is actually an update is sometimes extremely complicated.
+     * </p>
+     * <p>
+     * Updater will call this method from {@link #versionCheck(String)} before deciding whether
+     * the remote version is actually an update.
+     * If you have a specific versioning scheme with which a mathematical determination can
+     * be reliably made to decide whether one version is higher than another, you may
+     * revise this method, using the local and remote version parameters, to execute the
+     * appropriate check.
+     * </p>
+     * <p>
+     * Returning a value of <b>false</b> will tell the update process that this is NOT a new version.
+     * Without revision, this method will always consider a remote version at all different from
+     * that of the local version a new update.
+     * </p>
+     * @param localVersion the current version
+     * @param remoteVersion the remote version
+     * @return true if Updater should consider the remote version an update, false if not.
+     */
+    public boolean shouldUpdate(String localVersion, String remoteVersion) {
+        return !localVersion.equalsIgnoreCase(remoteVersion);
     }
 
     /**
