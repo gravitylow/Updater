@@ -35,7 +35,7 @@ import org.json.simple.JSONValue;
  * If you are unsure about these rules, please read the plugin submission guidelines: http://goo.gl/8iU5l
  *
  * @author Gravity
- * @version 2.1
+ * @version 2.2
  */
 
 public class Updater {
