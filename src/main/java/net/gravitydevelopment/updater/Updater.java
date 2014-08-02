@@ -11,6 +11,7 @@ import java.util.zip.ZipFile;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -77,6 +78,8 @@ public class Updater {
     private final File file;
     // The folder that downloads will be placed in
     private final File updateFolder;
+    // The provided callback (if any)
+    private final UpdateCallback callback;
     // Project's Curse ID
     private int id = -1;
     // BukkitDev ServerMods API key
@@ -192,8 +195,34 @@ public class Updater {
         this.file = file;
         this.id = id;
         this.updateFolder = new File(plugin.getDataFolder().getParent(), plugin.getServer().getUpdateFolder());
+        this.callback = null;
 
-        final File pluginFile = plugin.getDataFolder().getParentFile();
+        init();
+    }
+
+    /**
+     * Initialize the updater with the provided callback.
+     *
+     * @param plugin   The plugin that is checking for an update.
+     * @param id       The dev.bukkit.org id of the project.
+     * @param file     The file that the plugin is running from, get this by doing this.getFile() from within your main class.
+     * @param type     Specify the type of update this will be. See {@link UpdateType}
+     * @param callback The callback instance to notify when the Updater has finished
+     */
+    public Updater(Plugin plugin, int id, File file, UpdateType type, UpdateCallback callback) {
+        this.plugin = plugin;
+        this.type = type;
+        this.announce = false;
+        this.file = file;
+        this.id = id;
+        this.updateFolder = new File(plugin.getDataFolder().getParent(), plugin.getServer().getUpdateFolder());
+        this.callback = callback;
+
+        init();
+    }
+
+    private void init() {
+        final File pluginFile = this.plugin.getDataFolder().getParentFile();
         final File updaterFile = new File(pluginFile, "Updater");
         final File updaterConfigFile = new File(updaterFile, "config.yml");
 
@@ -219,11 +248,11 @@ public class Updater {
             }
         } catch (final Exception e) {
             if (createFile) {
-                plugin.getLogger().severe("The updater could not create configuration at " + updaterFile.getAbsolutePath());
+                this.plugin.getLogger().severe("The updater could not create configuration at " + updaterFile.getAbsolutePath());
             } else {
-                plugin.getLogger().severe("The updater could not load configuration at " + updaterFile.getAbsolutePath());
+                this.plugin.getLogger().severe("The updater could not load configuration at " + updaterFile.getAbsolutePath());
             }
-            plugin.getLogger().log(Level.SEVERE, null, e);
+            this.plugin.getLogger().log(Level.SEVERE, null, e);
         }
 
         if (config.getBoolean(DISABLE_CONFIG_KEY)) {
@@ -239,9 +268,9 @@ public class Updater {
         this.apiKey = key;
 
         try {
-            this.url = new URL(Updater.HOST + Updater.QUERY + id);
+            this.url = new URL(Updater.HOST + Updater.QUERY + this.id);
         } catch (final MalformedURLException e) {
-            plugin.getLogger().log(Level.SEVERE, "The project ID provided for updating, " + id + " is invalid.", e);
+            this.plugin.getLogger().log(Level.SEVERE, "The project ID provided for updating, " + this.id + " is invalid.", e);
             this.result = UpdateResult.FAIL_BADID;
         }
 
@@ -661,25 +690,52 @@ public class Updater {
         }
     }
 
-    private class UpdateRunnable implements Runnable {
+    /**
+     * Called on main thread when the Updater has finished working, regardless
+     * of result.
+     */
+    public interface UpdateCallback {
+        /**
+         * Called when the updater has finished working.
+         * @param updater The updater instance
+         */
+        void onFinish(Updater updater);
+    }
 
+    private class UpdateRunnable implements Runnable {
         @Override
         public void run() {
-            if (Updater.this.url != null &&
-                (Updater.this.read() && Updater.this.versionCheck(Updater.this.versionName))) {
-                // Obtain the results of the project's file feed
-                    if ((Updater.this.versionLink != null) && (Updater.this.type != UpdateType.NO_DOWNLOAD)) {
-                        String name = Updater.this.file.getName();
-                        // If it's a zip file, it shouldn't be downloaded as the plugin's name
-                        if (Updater.this.versionLink.endsWith(".zip")) {
-                            final String[] split = Updater.this.versionLink.split("/");
-                            name = split[split.length - 1];
-                        }
-                        Updater.this.saveFile(updateFolder, name, Updater.this.versionLink);
-                    } else {
-                        Updater.this.result = UpdateResult.UPDATE_AVAILABLE;
-                    }
-                }
+            runUpdater();
         }
+    }
+
+    private void runUpdater() {
+        if (this.url != null && (this.read() && this.versionCheck(this.versionName))) {
+            // Obtain the results of the project's file feed
+            if ((this.versionLink != null) && (this.type != UpdateType.NO_DOWNLOAD)) {
+                String name = this.file.getName();
+                // If it's a zip file, it shouldn't be downloaded as the plugin's name
+                if (this.versionLink.endsWith(".zip")) {
+                    final String[] split = this.versionLink.split("/");
+                    name = split[split.length - 1];
+                }
+                this.saveFile(updateFolder, name, this.versionLink);
+            } else {
+                this.result = UpdateResult.UPDATE_AVAILABLE;
+            }
+        }
+
+        if (this.callback != null) {
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    runCallback();
+                }
+            }.runTask(this.plugin);
+        }
+    }
+
+    private void runCallback() {
+        this.callback.onFinish(this);
     }
 }
