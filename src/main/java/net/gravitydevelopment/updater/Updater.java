@@ -189,15 +189,7 @@ public class Updater {
      * @param announce True if the program should announce the progress of new updates in console.
      */
     public Updater(Plugin plugin, int id, File file, UpdateType type, boolean announce) {
-        this.plugin = plugin;
-        this.type = type;
-        this.announce = announce;
-        this.file = file;
-        this.id = id;
-        this.updateFolder = new File(plugin.getDataFolder().getParent(), plugin.getServer().getUpdateFolder());
-        this.callback = null;
-
-        init();
+        this(plugin, id, file, type, null, announce);
     }
 
     /**
@@ -210,18 +202,28 @@ public class Updater {
      * @param callback The callback instance to notify when the Updater has finished
      */
     public Updater(Plugin plugin, int id, File file, UpdateType type, UpdateCallback callback) {
+        this(plugin, id, file, type, callback, false);
+    }
+
+    /**
+     * Initialize the updater with the provided callback.
+     *
+     * @param plugin   The plugin that is checking for an update.
+     * @param id       The dev.bukkit.org id of the project.
+     * @param file     The file that the plugin is running from, get this by doing this.getFile() from within your main class.
+     * @param type     Specify the type of update this will be. See {@link UpdateType}
+     * @param callback The callback instance to notify when the Updater has finished
+     * @param announce True if the program should announce the progress of new updates in console.
+     */
+    public Updater(Plugin plugin, int id, File file, UpdateType type, UpdateCallback callback, boolean announce) {
         this.plugin = plugin;
         this.type = type;
-        this.announce = false;
+        this.announce = announce;
         this.file = file;
         this.id = id;
         this.updateFolder = new File(plugin.getDataFolder().getParent(), plugin.getServer().getUpdateFolder());
         this.callback = callback;
 
-        init();
-    }
-
-    private void init() {
         final File pluginFile = this.plugin.getDataFolder().getParentFile();
         final File updaterFile = new File(pluginFile, "Updater");
         final File updaterConfigFile = new File(updaterFile, "config.yml");
@@ -362,12 +364,14 @@ public class Updater {
      * @param file the name of the file to save it as.
      * @param link the url of the file.
      */
-    private void saveFile(File folder, String file, String link) {
+    private void saveFile(String file) {
+        final File folder = this.updateFolder;
+
         deleteOldFiles();
         if (!folder.exists()) {
             this.fileIOOrError(folder, folder.mkdir(), true);
         }
-        downloadFile(link, folder);
+        downloadFile();
 
         // Check to see if it's a zip file, if it is, unzip it.
         final File dFile = new File(folder.getAbsolutePath(), file);
@@ -385,7 +389,10 @@ public class Updater {
      * @param link link to file.
      * @param folder folder to save file to.
      */
-    private void downloadFile(String link, File folder) {
+    private void downloadFile() {
+        final File folder = this.updateFolder;
+        final String link = this.versionLink;
+
         BufferedInputStream in = null;
         FileOutputStream fout = null;
         try {
@@ -548,10 +555,10 @@ public class Updater {
     /**
      * Check to see if the program should continue by evaluating whether the plugin is already updated, or shouldn't be updated.
      *
-     * @param title the plugin's title.
      * @return true if the version was located and is not the same as the remote's newest.
      */
-    private boolean versionCheck(String title) {
+    private boolean versionCheck() {
+        final String title = this.versionName;
         if (this.type != UpdateType.NO_VERSION_CHECK) {
             final String localVersion = this.plugin.getDescription().getVersion();
             if (title.split(DELIMETER).length == 2) {
@@ -714,16 +721,15 @@ public class Updater {
     }
 
     private void runUpdater() {
-        if (this.url != null && (this.read() && this.versionCheck(this.versionName))) {
+        if (this.url != null && (this.read() && this.versionCheck())) {
             // Obtain the results of the project's file feed
             if ((this.versionLink != null) && (this.type != UpdateType.NO_DOWNLOAD)) {
                 String name = this.file.getName();
                 // If it's a zip file, it shouldn't be downloaded as the plugin's name
                 if (this.versionLink.endsWith(".zip")) {
-                    final String[] split = this.versionLink.split("/");
-                    name = split[split.length - 1];
+                    name = this.versionLink.substring(this.versionLink.lastIndexOf("/") + 1);
                 }
-                this.saveFile(updateFolder, name, this.versionLink);
+                this.saveFile(name);
             } else {
                 this.result = UpdateResult.UPDATE_AVAILABLE;
             }
