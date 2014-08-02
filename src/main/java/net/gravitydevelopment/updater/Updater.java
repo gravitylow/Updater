@@ -337,7 +337,7 @@ public class Updater {
         downloadFile(link, folder);
 
         // Check to see if it's a zip file, if it is, unzip it.
-        final File dFile = new File(folder.getAbsolutePath() + File.separator + file);
+        final File dFile = new File(folder.getAbsolutePath(), file);
         if (dFile.getName().endsWith(".zip")) {
             // Unzip
             this.unzip(dFile.getAbsolutePath());
@@ -359,7 +359,7 @@ public class Updater {
             URL fileUrl = new URL(link);
             final int fileLength = fileUrl.openConnection().getContentLength();
             in = new BufferedInputStream(fileUrl.openStream());
-            fout = new FileOutputStream(folder.getAbsolutePath() + File.separator + file);
+            fout = new FileOutputStream(new File(folder, file.getName()));
 
             final byte[] data = new byte[Updater.BYTE_SIZE];
             int count;
@@ -383,6 +383,10 @@ public class Updater {
                 if (in != null) {
                     in.close();
                 }
+            } catch (final IOException ex) {
+                plugin.getLogger().log(Level.SEVERE, null, ex);
+            }
+            try {
                 if (fout != null) {
                     fout.close();
                 }
