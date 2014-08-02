@@ -334,7 +334,7 @@ public class Updater {
         if (!folder.exists()) {
             this.fileIOOrError(folder, folder.mkdir(), true);
         }
-            downloadFile(link, folder);
+        downloadFile(link, folder);
 
         // Check to see if it's a zip file, if it is, unzip it.
         final File dFile = new File(folder.getAbsolutePath() + File.separator + file);
