@@ -613,10 +613,11 @@ public class Updater {
                 return false;
             }
 
-            this.versionName = (String) ((JSONObject) array.get(array.size() - 1)).get(Updater.TITLE_VALUE);
-            this.versionLink = (String) ((JSONObject) array.get(array.size() - 1)).get(Updater.LINK_VALUE);
-            this.versionType = (String) ((JSONObject) array.get(array.size() - 1)).get(Updater.TYPE_VALUE);
-            this.versionGameVersion = (String) ((JSONObject) array.get(array.size() - 1)).get(Updater.VERSION_VALUE);
+            JSONObject latestUpdate = (JSONObject) array.get(array.size() - 1);
+            this.versionName = (String) latestUpdate.get(Updater.TITLE_VALUE);
+            this.versionLink = (String) latestUpdate.get(Updater.LINK_VALUE);
+            this.versionType = (String) latestUpdate.get(Updater.TYPE_VALUE);
+            this.versionGameVersion = (String) latestUpdate.get(Updater.VERSION_VALUE);
 
             return true;
         } catch (final IOException e) {
