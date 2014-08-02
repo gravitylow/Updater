@@ -221,7 +221,7 @@ public class Updater {
         this.announce = announce;
         this.file = file;
         this.id = id;
-        this.updateFolder = new File(plugin.getDataFolder().getParent(), plugin.getServer().getUpdateFolder());
+        this.updateFolder = this.plugin.getServer().getUpdateFolderFile();
         this.callback = callback;
 
         final File pluginFile = this.plugin.getDataFolder().getParentFile();
@@ -249,12 +249,13 @@ public class Updater {
                 config.load(updaterConfigFile);
             }
         } catch (final Exception e) {
+            final String message;
             if (createFile) {
-                this.plugin.getLogger().severe("The updater could not create configuration at " + updaterFile.getAbsolutePath());
+                message = "The updater could not create configuration at " + updaterFile.getAbsolutePath();
             } else {
-                this.plugin.getLogger().severe("The updater could not load configuration at " + updaterFile.getAbsolutePath());
+                message = "The updater could not load configuration at " + updaterFile.getAbsolutePath();
             }
-            this.plugin.getLogger().log(Level.SEVERE, null, e);
+            this.plugin.getLogger().log(Level.SEVERE, message, e);
         }
 
         if (config.getBoolean(DISABLE_CONFIG_KEY)) {
@@ -352,7 +353,7 @@ public class Updater {
             try {
                 this.thread.join();
             } catch (final InterruptedException e) {
-                plugin.getLogger().log(Level.SEVERE, null, e);
+                this.plugin.getLogger().log(Level.SEVERE, null, e);
             }
         }
     }
@@ -390,16 +391,13 @@ public class Updater {
      * @param folder folder to save file to.
      */
     private void downloadFile() {
-        final File folder = this.updateFolder;
-        final String link = this.versionLink;
-
         BufferedInputStream in = null;
         FileOutputStream fout = null;
         try {
-            URL fileUrl = new URL(link);
+            URL fileUrl = new URL(this.versionLink);
             final int fileLength = fileUrl.openConnection().getContentLength();
             in = new BufferedInputStream(fileUrl.openStream());
-            fout = new FileOutputStream(new File(folder, file.getName()));
+            fout = new FileOutputStream(new File(this.updateFolder, file.getName()));
 
             final byte[] data = new byte[Updater.BYTE_SIZE];
             int count;
@@ -416,7 +414,7 @@ public class Updater {
                 }
             }
         } catch (Exception ex) {
-            plugin.getLogger().log(Level.WARNING, "The auto-updater tried to download a new update, but was unsuccessful.", ex);
+            this.plugin.getLogger().log(Level.WARNING, "The auto-updater tried to download a new update, but was unsuccessful.", ex);
             this.result = Updater.UpdateResult.FAIL_DOWNLOAD;
         } finally {
             try {
@@ -424,14 +422,14 @@ public class Updater {
                     in.close();
                 }
             } catch (final IOException ex) {
-                plugin.getLogger().log(Level.SEVERE, null, ex);
+                this.plugin.getLogger().log(Level.SEVERE, null, ex);
             }
             try {
                 if (fout != null) {
                     fout.close();
                 }
             } catch (final IOException ex) {
-                plugin.getLogger().log(Level.SEVERE, null, ex);
+                this.plugin.getLogger().log(Level.SEVERE, null, ex);
             }
         }
     }
@@ -441,7 +439,7 @@ public class Updater {
      */
     private void deleteOldFiles() {
         //Just a quick check to make sure we didn't leave any files from last time...
-        File[] list = listFilesOrError(updateFolder);
+        File[] list = listFilesOrError(this.updateFolder);
         for (final File xFile : list) {
             if (xFile.getName().endsWith(".zip")) {
                 this.fileIOOrError(xFile, xFile.mkdir(), true);
@@ -478,7 +476,7 @@ public class Updater {
                     bis.close();
                     final String name = destinationFilePath.getName();
                     if (name.endsWith(".jar") && this.pluginExists(name)) {
-                        File output = new File(updateFolder, name);
+                        File output = new File(this.updateFolder, name);
                         this.fileIOOrError(output, destinationFilePath.renameTo(output), true);
                     }
                 }
@@ -687,14 +685,14 @@ public class Updater {
      */
     private void fileIOOrError(File file, boolean result, boolean create) {
         if (!result) {
-            plugin.getLogger().severe("The updater could not " + (create ? "create" : "delete") + " file at: " + file.getAbsolutePath());
+            this.plugin.getLogger().severe("The updater could not " + (create ? "create" : "delete") + " file at: " + file.getAbsolutePath());
         }
     }
 
     private File[] listFilesOrError(File folder) {
         File[] contents = folder.listFiles();
         if (contents == null) {
-            plugin.getLogger().severe("The updater could not access files at: " + updateFolder.getAbsolutePath());
+            this.plugin.getLogger().severe("The updater could not access files at: " + this.updateFolder.getAbsolutePath());
             return new File[0];
         } else {
             return contents;
