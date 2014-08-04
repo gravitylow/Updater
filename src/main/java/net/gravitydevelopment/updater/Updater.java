@@ -30,7 +30,7 @@ import org.json.simple.JSONValue;
  * If you are unsure about these rules, please read the plugin submission guidelines: http://goo.gl/8iU5l
  *
  * @author Gravity
- * @version 2.2
+ * @version 2.3
  */
 
 public class Updater {
@@ -242,7 +242,7 @@ public class Updater {
         boolean createFile = !updaterConfigFile.exists();
         try {
             if (createFile) {
-                this.fileIOOrError(updaterConfigFile, updaterConfigFile.mkdir(), true);
+                this.fileIOOrError(updaterConfigFile, updaterConfigFile.createNewFile(), true);
                 config.options().copyDefaults(true);
                 config.save(updaterConfigFile);
             } else {
@@ -361,9 +361,7 @@ public class Updater {
     /**
      * Save an update from dev.bukkit.org into the server's update folder.
      *
-     * @param folder the updates folder location.
      * @param file the name of the file to save it as.
-     * @param link the url of the file.
      */
     private void saveFile(String file) {
         final File folder = this.updateFolder;
@@ -387,8 +385,6 @@ public class Updater {
 
     /**
      * Download a file and save it to the specified folder.
-     * @param link link to file.
-     * @param folder folder to save file to.
      */
     private void downloadFile() {
         BufferedInputStream in = null;
@@ -592,7 +588,7 @@ public class Updater {
      * determine whether a new update is actually an update is sometimes extremely complicated.
      * </p>
      * <p>
-     * Updater will call this method from {@link #versionCheck(String)} before deciding whether
+     * Updater will call this method from {@link #versionCheck()} before deciding whether
      * the remote version is actually an update.
      * If you have a specific versioning scheme with which a mathematical determination can
      * be reliably made to decide whether one version is higher than another, you may
